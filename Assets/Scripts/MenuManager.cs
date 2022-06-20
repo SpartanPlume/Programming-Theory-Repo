@@ -1,10 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
+using TMPro;
 
 public class MenuManager : MonoBehaviour
 {
     public static MenuManager Instance { get; private set; } // ENCAPSULATION
+
+    [SerializeField] private TMP_InputField _playerNameInput;
+
+    private SaveData _saveData;
 
     [System.Serializable]
     private class Highscore
@@ -14,8 +20,8 @@ public class MenuManager : MonoBehaviour
             Name = name;
             Time = time;
         }
-        public string Name { get; private set; } // ENCAPSULATION
-        private float _time;
+        public string Name;
+        [SerializeField] private float _time;
         public float Time // ENCAPSULATION
         {
             get { return _time; }
@@ -26,13 +32,12 @@ public class MenuManager : MonoBehaviour
     [System.Serializable]
     private class SaveData
     {
-        public SaveData(string lastPlayerName, List<Highscore> highscores)
+        public SaveData()
         {
-            LastPlayerName = lastPlayerName;
-            Highscores = highscores;
+            Highscores = new List<Highscore>();
         }
-        public string LastPlayerName { get; set; }
-        public List<Highscore> Highscores { get; private set; } // ENCAPSULATION
+        public string LastPlayerName;
+        public List<Highscore> Highscores;
 
         public void AddHighscore(Highscore highscore)
         {
@@ -62,8 +67,6 @@ public class MenuManager : MonoBehaviour
         }
     }
 
-    private SaveData _saveData;
-
     private void Start()
     {
         if (Instance)
@@ -74,5 +77,36 @@ public class MenuManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        Load();
+
+        // Initialize default values with data from the savefile
+        _playerNameInput.text = _saveData.LastPlayerName;
+    }
+
+    private void Save()
+    {
+        string json = JsonUtility.ToJson(_saveData);
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+    }
+
+    private void Load()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            _saveData = JsonUtility.FromJson<SaveData>(json);
+        }
+        else
+        {
+            // Create a new SaveData if there is no file to load
+            _saveData = new SaveData();
+        }
+    }
+
+    public void StartGame()
+    {
+        _saveData.LastPlayerName = _playerNameInput.text;
+        Save();
     }
 }
